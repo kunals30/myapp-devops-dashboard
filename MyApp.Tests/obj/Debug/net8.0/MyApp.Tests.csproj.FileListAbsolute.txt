@@ -110,3 +110,6 @@
 /home/azureuser/myprojects/MyApp.Tests/obj/Debug/net8.0/MyApp.Tests.pdb
 /home/azureuser/myprojects/MyApp.Tests/obj/Debug/net8.0/MyApp.Tests.genruntimeconfig.cache
 /home/azureuser/myprojects/MyApp.Tests/obj/Debug/net8.0/ref/MyApp.Tests.dll
+/home/azureuser/myprojects/MyApp.Tests/bin/Debug/net8.0/Castle.Core.dll
+/home/azureuser/myprojects/MyApp.Tests/bin/Debug/net8.0/Moq.dll
+/home/azureuser/myprojects/MyApp.Tests/obj/Debug/net8.0/MyApp.Tests.sourcelink.json
