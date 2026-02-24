@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MyApp | Add Product</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<nav>
+    <div class="logo"> MyApp</div>
+    <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="products.html">Add Product</a></li>
+    </ul>
+</nav>
+
+<div class="container">
+    <h1>Add New Product</h1>
+
+    <div class="form-box">
+        <input type="text" id="name" placeholder="Product Name">
+        <input type="number" id="price" placeholder="Price">
+        <button onclick="addProduct()">Add Product</button>
+    </div>
+
+    <p id="message"></p>
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
