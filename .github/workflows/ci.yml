@@ -31,7 +31,7 @@ jobs:
     - name: Begin SonarCloud Analysis
       run: |
         dotnet sonarscanner begin \
-          /k:"myapp-devops-dashboard" \
+          /k:"kunals30_myapp-devops-dashboard" \
           /o:"kunals30" \
           /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
           /d:sonar.host.url="https://sonarcloud.io" \
