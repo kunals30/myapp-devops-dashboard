@@ -1,52 +1,74 @@
-name: .NET CI Pipeline with HTML Coverage
+name: .NET CI with SonarCloud
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
   pull_request:
-    branches:
-      - main
+    branches: [ "main" ]
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
 
-      - name: Restore Dependencies
-        run: dotnet restore MyApp.sln
+    - name: Install SonarCloud scanner
+      run: dotnet tool install --global dotnet-sonarscanner
 
-      - name: Build Solution
-        run: dotnet build MyApp.sln --configuration Release --no-restore
+    - name: Install ReportGenerator
+      run: dotnet tool install --global dotnet-reportgenerator-globaltool
 
-      - name: Run Tests with Coverage
-        run: |
-          dotnet test MyApp.sln \
-            --configuration Release \
-            --no-build \
-            --collect:"XPlat Code Coverage" \
-            --results-directory ./coverage
+    - name: Add .NET tools to PATH
+      run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
-      - name: Install ReportGenerator
-        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+    # 🔹 Start Sonar Analysis
+    - name: Begin SonarCloud Analysis
+      run: |
+        dotnet sonarscanner begin \
+          /k:"myapp-devops-dashboard" \
+          /o:"kunals30" \
+          /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
+          /d:sonar.host.url="https://sonarcloud.io" \
+          /d:sonar.cs.opencover.reportsPaths="coverage/OpenCover.xml"
 
-      - name: Generate HTML Coverage Report
-        run: |
-          reportgenerator \
-            -reports:coverage/**/coverage.cobertura.xml \
-            -targetdir:coverage/html \
-            -reporttypes:Html
+    - name: Restore
+      run: dotnet restore MyApp.sln
 
-      - name: Upload HTML Coverage Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: html-coverage-report
-          path: coverage/html
+    - name: Build
+      run: dotnet build MyApp.sln --no-restore --configuration Release
+
+    # 🔹 Run Tests with Coverage (OpenCover format)
+    - name: Test with Coverage
+      run: |
+        dotnet test MyApp.sln \
+          --configuration Release \
+          --no-build \
+          /p:CollectCoverage=true \
+          /p:CoverletOutput=coverage/ \
+          /p:CoverletOutputFormat=opencover
+
+    # 🔹 Generate HTML + Cobertura reports
+    - name: Generate Coverage Report
+      run: |
+        reportgenerator \
+          -reports:coverage/coverage.opencover.xml \
+          -targetdir:coverage/report \
+          -reporttypes:Html;Cobertura;OpenCover
+
+    # 🔹 End Sonar Analysis
+    - name: End SonarCloud Analysis
+      run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+
+    # 🔹 Upload HTML report as artifact
+    - name: Upload Coverage Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/report
