@@ -11,24 +11,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # 🔹 Checkout
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # 🔹 Setup .NET 8
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
 
+    # 🔹 Install SonarScanner
     - name: Install SonarCloud scanner
       run: dotnet tool install --global dotnet-sonarscanner
 
+    # 🔹 Install ReportGenerator
     - name: Install ReportGenerator
       run: dotnet tool install --global dotnet-reportgenerator-globaltool
 
+    # 🔹 Add tools to PATH
     - name: Add .NET tools to PATH
       run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
-    # 🔹 Start Sonar Analysis
+    # 🔹 Begin SonarCloud Analysis
     - name: Begin SonarCloud Analysis
       run: |
         dotnet sonarscanner begin \
@@ -36,33 +41,34 @@ jobs:
           /o:"kunals30" \
           /d:sonar.token="${{ secrets.SONAR_TOKEN }}" \
           /d:sonar.host.url="https://sonarcloud.io" \
-          /d:sonar.cs.opencover.reportsPaths="coverage/OpenCover.xml"
+          /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
 
+    # 🔹 Restore
     - name: Restore
       run: dotnet restore MyApp.sln
 
+    # 🔹 Build
     - name: Build
       run: dotnet build MyApp.sln --no-restore --configuration Release
 
     # 🔹 Run Tests with Coverage (OpenCover format)
     - name: Test with Coverage
       run: |
-        dotnet test MyApp.sln \
+        dotnet test MyApp.Tests/MyApp.Tests.csproj \
           --configuration Release \
           --no-build \
           /p:CollectCoverage=true \
-          /p:CoverletOutput=coverage/ \
           /p:CoverletOutputFormat=opencover
 
-    # 🔹 Generate HTML + Cobertura reports
+    # 🔹 Generate HTML Coverage Report
     - name: Generate Coverage Report
       run: |
         reportgenerator \
-          -reports:coverage/coverage.opencover.xml \
+          -reports:**/coverage.opencover.xml \
           -targetdir:coverage/report \
           -reporttypes:Html;Cobertura;OpenCover
 
-    # 🔹 End Sonar Analysis
+    # 🔹 End SonarCloud Analysis
     - name: End SonarCloud Analysis
       run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
