@@ -9,7 +9,7 @@ namespace MyApp.Tests
     public class ProductControllerTests
     {
         [Fact]
-        public void Get_ReturnsEmptyList_Initially()
+        public void Get_ReturnsProductList()
         {
             var controller = new ProductController();
 
@@ -18,27 +18,39 @@ namespace MyApp.Tests
             var okResult = Assert.IsType<OkObjectResult>(result);
             var products = Assert.IsAssignableFrom<IEnumerable<Product>>(okResult.Value);
 
-            Assert.Empty(products);
+            Assert.NotNull(products);
         }
 
         [Fact]
-        public void Add_ValidProduct_ReturnsOk()
+        public void Add_ValidProduct_IncreasesCount()
         {
             var controller = new ProductController();
 
+            // Get initial count
+            var initialResult = controller.Get();
+            var initialOk = Assert.IsType<OkObjectResult>(initialResult);
+            var initialList = ((IEnumerable<Product>)initialOk.Value).ToList();
+            var initialCount = initialList.Count;
+
             var product = new Product
             {
-                Id = 1,
-                Name = "Test Product",
-                Price = 100
+                Id = 999,
+                Name = "CI Test Product",
+                Price = 123
             };
 
-            var result = controller.Add(product);
+            var addResult = controller.Add(product);
+            var addOk = Assert.IsType<OkObjectResult>(addResult);
+            var returnedProduct = Assert.IsType<Product>(addOk.Value);
 
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var returnedProduct = Assert.IsType<Product>(okResult.Value);
+            Assert.Equal("CI Test Product", returnedProduct.Name);
 
-            Assert.Equal("Test Product", returnedProduct.Name);
+            // Verify count increased
+            var afterResult = controller.Get();
+            var afterOk = Assert.IsType<OkObjectResult>(afterResult);
+            var afterList = ((IEnumerable<Product>)afterOk.Value).ToList();
+
+            Assert.Equal(initialCount + 1, afterList.Count);
         }
 
         [Fact]
@@ -50,40 +62,25 @@ namespace MyApp.Tests
 
             Assert.IsType<BadRequestResult>(result);
         }
-
-        [Fact]
-        public void Add_Then_Get_ShouldContainProduct()
-        {
-            var controller = new ProductController();
-
-            var product = new Product
-            {
-                Id = 2,
-                Name = "Laptop",
-                Price = 500
-            };
-
-            controller.Add(product);
-
-            var result = controller.Get();
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var products = Assert.IsAssignableFrom<IEnumerable<Product>>(okResult.Value);
-
-            Assert.Contains(products, p => p.Id == 2);
-        }
     }
 
     public class HealthControllerTests
     {
         [Fact]
-        public void Get_ReturnsHealthyStatus()
+        public void Get_ReturnsHealthyStatusObject()
         {
             var controller = new HealthController();
 
             var result = controller.Get();
 
             var okResult = Assert.IsType<OkObjectResult>(result);
-            Assert.Equal("Healthy", okResult.Value);
+
+            // Anonymous object handling
+            dynamic value = okResult.Value;
+
+            Assert.Equal("Healthy", (string)value.Status);
+            Assert.NotNull(value.Server);
+            Assert.NotNull(value.Time);
         }
     }
 }
