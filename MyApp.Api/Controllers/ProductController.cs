@@ -22,6 +22,9 @@ public class ProductController : ControllerBase
     [HttpPost]
     public IActionResult Add(Product product)
     {
+        if (product == null)
+        return BadRequest();
+ 
         product.Id = _products.Max(p => p.Id) + 1;
         _products.Add(product);
         return Ok(product);
