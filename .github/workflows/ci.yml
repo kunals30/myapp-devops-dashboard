@@ -1,4 +1,4 @@
-name: .NET CI with SonarCloud
+name: .NET CI + SonarCloud + Docker ACR
 
 on:
   push:
@@ -6,28 +6,38 @@ on:
   pull_request:
     branches: [ "main" ]
 
+env:
+  IMAGE_NAME: myapp-api
+  REGISTRY: ${{ secrets.AZURE_REGISTRY }}
+  VERSION: 1.0.${{ github.run_number }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+    # 🔹 Checkout
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # 🔹 Setup .NET 8
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
 
+    # 🔹 Install SonarScanner
     - name: Install SonarScanner
       run: dotnet tool install --global dotnet-sonarscanner
 
+    # 🔹 Install ReportGenerator
     - name: Install ReportGenerator
       run: dotnet tool install --global dotnet-reportgenerator-globaltool
 
     - name: Add .NET tools to PATH
       run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
+    # 🔹 Begin SonarCloud Analysis
     - name: Begin SonarCloud Analysis
       run: |
         dotnet sonarscanner begin \
@@ -37,13 +47,15 @@ jobs:
           /d:sonar.host.url="https://sonarcloud.io" \
           /d:sonar.cs.opencover.reportsPaths="**/coverage.cobertura.xml"
 
+    # 🔹 Restore
     - name: Restore
       run: dotnet restore MyApp.sln
 
+    # 🔹 Build
     - name: Build
       run: dotnet build MyApp.sln --no-restore --configuration Release
 
-    # ✅ Correct & Stable Coverage Method
+    # 🔹 Run Tests with Coverage
     - name: Test with Coverage
       run: |
         dotnet test MyApp.Tests/MyApp.Tests.csproj \
@@ -51,6 +63,7 @@ jobs:
           --no-build \
           --collect:"XPlat Code Coverage"
 
+    # 🔹 Generate HTML Coverage Report
     - name: Generate Coverage Report
       run: |
         reportgenerator \
@@ -58,9 +71,33 @@ jobs:
           -targetdir:coverage/report \
           -reporttypes:Html
 
+    # 🔹 End SonarCloud Analysis
     - name: End SonarCloud Analysis
       run: dotnet sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
 
+    # 🔹 Login to Azure Container Registry
+    - name: Login to ACR
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.AZURE_USERNAME }}
+        password: ${{ secrets.AZURE_PASSWORD }}
+
+    # 🔹 Build Docker Image (Versioned)
+    - name: Build Docker Image
+      run: |
+        docker build \
+          -t $REGISTRY/$IMAGE_NAME:$VERSION \
+          -t $REGISTRY/$IMAGE_NAME:${{ github.sha }} \
+          .
+
+    # 🔹 Push Docker Images
+    - name: Push Docker Images
+      run: |
+        docker push $REGISTRY/$IMAGE_NAME:$VERSION
+        docker push $REGISTRY/$IMAGE_NAME:${{ github.sha }}
+
+    # 🔹 Upload Coverage Report Artifact
     - name: Upload Coverage Report
       uses: actions/upload-artifact@v4
       with:
