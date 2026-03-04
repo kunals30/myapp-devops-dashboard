@@ -16,7 +16,12 @@ spec:
       - name: myapp-api
         image: IMAGE_PLACEHOLDER
         ports:
-        - containerPort: 80
+        - containerPort: 5000
+        # Optional but recommended for ASP.NET Core:
+        env:
+        - name: ASPNETCORE_URLS
+          value: "http://+:5000"
+
 ---
 apiVersion: v1
 kind: Service
@@ -27,5 +32,5 @@ spec:
   selector:
     app: myapp-api
   ports:
-    - port: 80
-      targetPort: 80
+  - port: 80
+    targetPort: 5000
